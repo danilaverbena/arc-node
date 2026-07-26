@@ -261,18 +261,17 @@ download_error() {
 version_gt() {
     [ "$1" = "$2" ] && return 1
 
-    # Remove 'v' prefix if present
-    local v1="${1#v}"
-    local v2="${2#v}"
+    # Remove 'v' prefix and strip build metadata (+...) up front. SemVer ignores
+    # build metadata for precedence, and stripping it first prevents a '-' inside
+    # build metadata (e.g. 1.0.0+build-1) from being misread as a prerelease.
+    local v1="${1#v}"; v1="${v1%%+*}"
+    local v2="${2#v}"; v2="${v2%%+*}"
 
-    # Split into core "major.minor.patch" and prerelease; drop build metadata (+...),
-    # which SemVer ignores for precedence.
+    # Split into core "major.minor.patch" and optional prerelease.
     local core1="${v1%%-*}" pre1=""
     [ "$v1" = "$core1" ] || pre1="${v1#*-}"
     local core2="${v2%%-*}" pre2=""
     [ "$v2" = "$core2" ] || pre2="${v2#*-}"
-    core1="${core1%%+*}"; core2="${core2%%+*}"
-    pre1="${pre1%%+*}"; pre2="${pre2%%+*}"
 
     local major1 minor1 patch1 major2 minor2 patch2
     IFS=. read -r major1 minor1 patch1 <<EOF
@@ -296,8 +295,11 @@ EOF
     [ -z "$pre2" ] && return 1
 
     # Both have a prerelease: compare dot-separated identifiers left to right.
-    local LC_ALL=C IFS=.
-    local -a a1=($pre1) a2=($pre2)
+    # `read -ra` splits on IFS without pathname (glob) expansion.
+    local LC_ALL=C
+    local -a a1 a2
+    IFS=. read -ra a1 <<< "$pre1"
+    IFS=. read -ra a2 <<< "$pre2"
     local max=${#a1[@]}
     [ "${#a2[@]}" -gt "$max" ] && max=${#a2[@]}
     local i id1 id2
