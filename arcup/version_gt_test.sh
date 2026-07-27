@@ -72,5 +72,11 @@ assert_le "1.0.0+build-123" "1.0.0"
 assert_le "1.0.0" "1.0.0+build-123"
 assert_gt "1.0.1+build-1" "1.0.0"
 
+# Prerelease combined with build metadata: build metadata is ignored, so
+# precedence is decided purely by the prerelease identifiers.
+assert_le "1.0.0-rc.1+build-123" "1.0.0-rc.1"
+assert_le "1.0.0-rc.1" "1.0.0-rc.1+build-123"
+assert_gt "1.0.0-rc.2+build-1" "1.0.0-rc.1+build-99"
+
 echo "version_gt: ${pass} passed, ${fail} failed"
 [ "${fail}" -eq 0 ]
